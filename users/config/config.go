@@ -42,31 +42,10 @@ func LoadEnv() {
 	}
 }
 
-// Middleware для обработки CORS
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*") // Разрешённый домен
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Allow-Credentials", "true") // Разрешаем куки
-
-		// Обработка preflight-запроса (OPTIONS)
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
 
 func StartServer() {
-	mux := http.NewServeMux()
-	handler := corsMiddleware(mux)
-
 	// Запуск сервера на определенном порту
-	err := http.ListenAndServe(":" + os.Getenv("SERVER_PORT"), handler)
+	err := http.ListenAndServe(":" + os.Getenv("SERVER_PORT"), nil)
 	if err != nil {
 		log.Println("Error starting user server")
 		panic("Error starting user server")

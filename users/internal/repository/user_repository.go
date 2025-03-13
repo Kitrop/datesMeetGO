@@ -17,6 +17,7 @@ type newUserData struct {
 	token string
 }
 
+// Создание нового пользователя
 func CreateUser(db *gorm.DB, userData models.CreateUser) (newUserData, error) {
 	// Валидация входных данных
 	validate := validator.New()
@@ -73,4 +74,8 @@ func CreateUser(db *gorm.DB, userData models.CreateUser) (newUserData, error) {
 	}
 
 	return newUserData{UserID: newUser.ID, Email: newUser.Email, Username: newUser.Username, token: token}, nil
+}
+
+func UserLogin(password string) {
+	
 }
