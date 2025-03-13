@@ -25,6 +25,12 @@ type UserSession struct {
 	Token     string    `gorm:"not null"`
 }
 
+type UserCreateResponse struct {
+	ID           uint
+	Email        string
+	Username     string
+	Token 			 string
+}
 
 type CreateUser struct {
 	Username  string    `validate:"required"`
@@ -39,4 +45,9 @@ type UserLoginResponse struct {
 	Username  string
 	Email     string
 	Token 		string
+}
+
+type UserLoginRequest struct {
+	UserID 				uint 	 `validate:"required"`
+	InputPassword string `validate:"required"`
 }
