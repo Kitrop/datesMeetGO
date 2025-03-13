@@ -8,17 +8,17 @@ import (
 	"gorm.io/gorm"
 )
 
-// SessionManager отвечает за создание JWT-токена и сохранение сессии в БД.
+// SessionManager отвечает за создание JWT-токена и сохранение сессии в БД
 type SessionManager struct {
 	db *gorm.DB
 }
 
-// NewSessionManager создаёт новый экземпляр SessionManager.
+// NewSessionManager создаёт новый экземпляр SessionManager
 func NewSessionManager(db *gorm.DB) *SessionManager {
 	return &SessionManager{db: db}
 }
 
-// CreateSession создаёт JWT-токен и сохраняет сессию в базе данных.
+// CreateSession создаёт JWT-токен и сохраняет сессию в базе данных
 func (sm *SessionManager) CreateSession(userID uint, username, email string) (string, error) {
 	// Создание JWT токена с использованием логики из сервиса
 	token, err := service.CreateJWT(userID, username, email)
