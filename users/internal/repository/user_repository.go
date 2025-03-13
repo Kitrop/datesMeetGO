@@ -55,27 +55,74 @@ func CreateUser(db *gorm.DB, userData models.CreateUser) (newUserData, error) {
 		return newUserData{}, result.Error
 	}
 
-	// Cоздание токена
-	token, err := service.CreateJWT(newUser.ID, newUser.Username, newUser.Email)
+	// Создание сессии и токена
+	token, err := CreateSession(db, newUser.ID, newUser.Username, newUser.Email)
 	if err != nil {
 		return newUserData{}, err
-	}
-
-	newSession := models.UserSession{
-		UserID: newUser.ID,
-		Token: token,
-	}
-	
-	// Создание сессии для пользователя
-	resultNewSession := db.Create(&newSession)
-	if resultNewSession.Error != nil {
-		log.Fatal("Ошибка при создании токена:", result.Error)
-		return newUserData{}, result.Error
 	}
 
 	return newUserData{UserID: newUser.ID, Email: newUser.Email, Username: newUser.Username, token: token}, nil
 }
 
-func UserLogin(password string) {
-	
+// Создание сессии и токена для пользователя
+func CreateSession(db *gorm.DB, userID uint, username string, email string) (string, error) {
+	// Cоздание токена
+	token, err := service.CreateJWT(userID, username, email)
+	if err != nil {
+		return "", err
+	}
+
+	newSession := models.UserSession{
+		UserID: userID,
+		Token: token,
+	}
+
+	// Создание сессии в БД
+	result := db.Create(&newSession)
+	if result.Error != nil {
+		log.Fatal("Ошибка при создании токена:", result.Error)
+		return "", result.Error
+	}
+
+	return token, nil
+}
+
+// Получение пользователя из БД
+func getUserFromDB(db *gorm.DB, userID uint) (models.User, error){
+	var user models.User
+	findUser := db.First(&user, userID) // Поиск пользователя по id
+
+	// Если пользователь не найден
+	if findUser.Error != nil {
+		err := errors.New("user not found")
+		return models.User{}, err
+	}
+
+	return user, nil
+}
+
+// Функция для логина пользователя
+func UserLogin(db *gorm.DB, userID uint, inputPassword string) (models.UserLoginResponse, error) {
+	userData, err := getUserFromDB(db, userID) // Получаем данные 
+	if err != nil {
+		return models.UserLoginResponse{}, err
+	}
+
+	// Проверка на правильность пароля
+	isLogin, err := service.PasswordCompare(userData.PasswordHash, inputPassword)
+	if err != nil {
+		return models.UserLoginResponse{}, err
+	}
+
+	if !isLogin {
+		err := errors.New("incorrect password")
+		return models.UserLoginResponse{}, err
+	}
+
+	token, err := CreateSession(db, userData.ID, userData.Username, userData.Email)
+	if err != nil {
+		return models.UserLoginResponse{}, err
+	}
+
+	return models.UserLoginResponse{ Username: userData.Username, Email: userData.Email, Token: token}, nil
 }

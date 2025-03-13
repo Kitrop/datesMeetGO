@@ -34,3 +34,9 @@ type CreateUser struct {
 	Location  string    `validate:"required"`
 	Password  string    `validate:"required"`
 }
+
+type UserLoginResponse struct {
+	Username  string
+	Email     string
+	Token 		string
+}
