@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"users_service/internal/models"
+	"users_service/internal/auth"
 	"users_service/internal/service"
 
 	"github.com/go-playground/validator/v10"
@@ -11,15 +12,17 @@ import (
 )
 
 type UserRepository struct {
-	db       *gorm.DB
-	validate *validator.Validate
+	db             *gorm.DB
+	validate       *validator.Validate
+	sessionManager *auth.SessionManager
 }
 
-// Конструктор UserRepository
-func NewUserRepository(db *gorm.DB) *UserRepository {
+// Конструктор, принимающий sessionManager как зависимость
+func NewUserRepository(db *gorm.DB, sessionManager *auth.SessionManager) *UserRepository {
 	return &UserRepository{
-		db:       db,
-		validate: validator.New(),
+		db:             db,
+		validate:       validator.New(),
+		sessionManager: sessionManager,
 	}
 }
 
@@ -52,6 +55,7 @@ func (r *UserRepository) CreateUser(userData models.CreateUser) (models.UserCrea
 
 	// Создание пользователя в системе
 	if err := r.db.Create(&newUser).Error; err != nil {
+		// Проверка дублирования
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return models.UserCreateResponse{}, errors.New("user with this email already exists")
 		}
@@ -59,8 +63,8 @@ func (r *UserRepository) CreateUser(userData models.CreateUser) (models.UserCrea
 		return models.UserCreateResponse{}, err
 	}
 
-	// Создание сессии и токена
-	token, err := r.CreateSession(newUser.ID, newUser.Username, newUser.Email)
+	// Создание сессии и токена через sessionManager
+	token, err := r.sessionManager.CreateSession(newUser.ID, newUser.Username, newUser.Email)
 	if err != nil {
 		return models.UserCreateResponse{}, err
 	}
@@ -70,28 +74,6 @@ func (r *UserRepository) CreateUser(userData models.CreateUser) (models.UserCrea
 		Email:    newUser.Email,
 		Token:    token,
 	}, nil
-}
-
-// Создание сессии и токена для пользователя
-func (r *UserRepository) CreateSession(userID uint, username, email string) (string, error) {
-	// Создание JWT токена
-	token, err := service.CreateJWT(userID, username, email)
-	if err != nil {
-		return "", err
-	}
-
-	newSession := models.UserSession{
-		UserID: userID,
-		Token:  token,
-	}
-
-	// Создание сессии в БД
-	if err := r.db.Create(&newSession).Error; err != nil {
-		log.Println("Ошибка при создании токена:", err)
-		return "", err
-	}
-
-	return token, nil
 }
 
 // Получение пользователя из БД
@@ -113,7 +95,7 @@ func (r *UserRepository) UserLogin(userDataInput models.UserLoginRequest) (model
 	if err := r.validate.Struct(userDataInput); err != nil {
 		return models.UserLoginResponse{}, err
 	}
-	
+
 	// Получаем данные пользователя из БД
 	userData, err := r.GetUserFromDB(userDataInput.UserID)
 	if err != nil {
@@ -125,8 +107,8 @@ func (r *UserRepository) UserLogin(userDataInput models.UserLoginRequest) (model
 		return models.UserLoginResponse{}, errors.New("incorrect password")
 	}
 
-	// Создание сессии и токена
-	token, err := r.CreateSession(userData.ID, userData.Username, userData.Email)
+	// Создание сессии и токена через sessionManager
+	token, err := r.sessionManager.CreateSession(userData.ID, userData.Username, userData.Email)
 	if err != nil {
 		return models.UserLoginResponse{}, err
 	}
