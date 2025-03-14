@@ -10,7 +10,7 @@ type User struct {
 	ID           uint         `gorm:"primaryKey"`
 	Email        string       `gorm:"size:255;uniqueIndex;not null"`
 	PasswordHash string       `gorm:"not null"`
-	Username     string       `gorm:"size:100;not null"`
+	Username     string       `gorm:"size:100;uniqueIndex;not null"`
 	BirthDate    time.Time    `gorm:"type:date;not null"`
 	Gender       string       `gorm:"size:10;not null"`
 	Location     string       `gorm:"size:255"`
@@ -48,6 +48,18 @@ type UserLoginResponse struct {
 }
 
 type UserLoginRequest struct {
-	UserID 				uint 	 `validate:"required"`
+	Email 				string 	`validate:"required, email"`
 	InputPassword string `validate:"required"`
+}
+
+type Status struct {
+	StatusCode int `json:"statusCode"`
+	StatUS int `json:"statusMessage"`
+}
+
+type ServiceResponse struct {
+	Status  string      `json:"status"`           // "success" или "error"
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
 }

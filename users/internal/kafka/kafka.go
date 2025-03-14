@@ -36,7 +36,6 @@ func UserServiceConsumer(userRepo *repository.UserRepository) {
 		Topic:   "users",
 		GroupID: "users-service-group",
 	})
-
 	defer reader.Close()
 
 	for {
@@ -52,41 +51,53 @@ func UserServiceConsumer(userRepo *repository.UserRepository) {
 			continue
 		}
 
-		// Вызываем processTask и отправляем ответ в Kafka
-		response, err := processTask(task, userRepo)
+		// Вызываем processTask и подготавливаем ответ
+		responseData, statusCode, err := processTask(task, userRepo)
+		var response models.ServiceResponse
 		if err != nil {
 			log.Println("Ошибка выполнения задачи:", err)
-			continue
+			response = models.ServiceResponse{
+				Status:  "error",
+				Code:    statusCode,
+				Message: err.Error(),
+			}
+		} else {
+			response = models.ServiceResponse{
+				Status: "success",
+				Code:   statusCode,
+				Data:   responseData,
+			}
 		}
 
-		// Определяем responseTopic (например, users-response)
+		// Отправляем сформированный ответ в Kafka
 		sendResponseToKafka("users-response", response)
 	}
 }
 
-// processTask теперь возвращает результат (пользователя) и ошибку
-func processTask(task map[string]interface{}, userRepo *repository.UserRepository) (interface{}, error) {
+
+// Поиск новых сообщений
+func processTask(task map[string]interface{}, userRepo *repository.UserRepository) (interface{}, int, error) {
 	action, ok := task["action"].(string)
 	if !ok {
 		log.Println("Ошибка: нет действия")
-		return nil, nil
+		return nil, 500, nil
 	}
 
 	switch action {
 	case "login":
 		userData := models.UserLoginRequest{
-			UserID:        uint(task["userID"].(float64)), // Приведение к uint
+			Email:         task["email"].(string),
 			InputPassword: task["password"].(string),
 		}
 
-		user, err := userRepo.UserLogin(userData)
+		user, statusCode, err := userRepo.UserLogin(userData)
 		if err != nil {
 			log.Println("Ошибка логина:", err)
-			return nil, err
+			return nil, statusCode, err
 		}
 
 		log.Println("Пользователь успешно залогинен:", user)
-		return user, nil // ✅ Возвращаем пользователя и nil-ошибку
+		return user, statusCode, nil
 
 	case "create":
 		userData := models.CreateUser{
@@ -97,17 +108,17 @@ func processTask(task map[string]interface{}, userRepo *repository.UserRepositor
 			Location: task["location"].(string),
 		}
 
-		newUser, err := userRepo.CreateUser(userData)
+		newUser, statusCode, err := userRepo.CreateUser(userData)
 		if err != nil {
 			log.Println("Ошибка создания пользователя:", err)
-			return nil, err
+			return nil, statusCode, err
 		}
 
 		log.Println("Пользователь успешно создан:", newUser)
-		return newUser, nil // ✅ Возвращаем нового пользователя и nil-ошибку
+		return newUser, statusCode, nil
 
 	default:
 		log.Println("Неизвестное действие:", action)
-		return nil, nil
+		return nil, 400, nil
 	}
 }

@@ -10,6 +10,8 @@ user-service/
 │   ├── config.yaml         // Конфигурация: параметры БД, Kafka, Redis, логирование и метрики
 │   └── config.go           // Загрузка и парсинг конфигурационных файлов
 ├── internal/
+│   ├── auth/
+│   │   └── session_manager.go
 │   ├── models/
 │   │   ├── user.go         // Определение структуры пользователя с тегами GORM
 │   │   └── user_settings.go
