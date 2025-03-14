@@ -25,6 +25,9 @@ func ConnectDB() *gorm.DB {
 	if err != nil {
 		panic("failed to connect database")
 	}
+	
+	// Создаем расширение uuid-ossp, если его нет
+	db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
 
 	// Миграция схем
 	db.AutoMigrate(&models.User{})
