@@ -1,7 +1,14 @@
 package main
 
-import "gateway/config"
+import (
+	"gateway/config"
+	"gateway/handler"
+)
 
 func main() {
-	config.StartServer()
+	// 1. Запуск сервера
+	app := config.StartServer()
+
+	// 2. Инициализация роутера
+	handler.Handlers(app)
 }
