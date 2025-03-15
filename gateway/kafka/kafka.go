@@ -8,7 +8,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// Отправляет запрос в указанный топик
+// Отправка запроса в Kafka
 func SendRequestToKafka(requestTopic string, request interface{}) error {
 	writer := kafka.NewWriter(kafka.WriterConfig{
 		Brokers: []string{"localhost:9092"},
@@ -30,7 +30,7 @@ func SendRequestToKafka(requestTopic string, request interface{}) error {
 	return nil
 }
 
-// Читает сообщения из топика ответов и вызывает обработчик для каждого полученного сообщения
+// Читает сообщения из топика ответов и вызывает переданный handler
 func GatewayResponseConsumer(responseTopic string, handler func(message []byte)) {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{"localhost:9092"},
@@ -45,7 +45,6 @@ func GatewayResponseConsumer(responseTopic string, handler func(message []byte))
 			log.Println("Ошибка чтения сообщения:", err)
 			continue
 		}
-		// Вызов обработчика для дальнейшей обработки полученного сообщения
 		handler(msg.Value)
 	}
 }

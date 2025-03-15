@@ -2,6 +2,7 @@ package handler
 
 import (
 	"gateway/models"
+	"gateway/service"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -14,26 +15,38 @@ func Handlers(app *fiber.App) {
 
 	apiUserService.Post("/create", func(c *fiber.Ctx) error {
 		var input models.UserCreateInput
-		// Парсинг тела запроса в структуру
 		if err := c.BodyParser(&input); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "Неверный формат запроса",
 			})
 		}
-		// Валидация входных данных
 		if err := validate.Struct(input); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "Ошибка валидации: " + err.Error(),
 			})
 		}
 
-		// Здесь можно добавить логику создания пользователя, например, запись в БД
+		// Создаем запрос типа KafkaRequest
+		req := service.KafkaRequest{
+			Action:   "create",
+			Email:    input.Email,
+			Username: input.Username,
+			Password: input.Password,
+			Gender:   input.Gender,
+			Location: input.Location,
+		}
 
-		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-			"message": "Пользователь успешно создан",
-			"user":    input,
-		})
+		// Ждем ответ
+		resp, err := service.SendRequestToUserService(req)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Ошибка обработки запроса: " + err.Error(),
+			})
+		}
+
+		return c.Status(resp.Code).JSON(resp)
 	})
+	
 
 	apiUserService.Post("/login", func(c *fiber.Ctx) error {
 		var input models.UserLoginInput
@@ -50,7 +63,7 @@ func Handlers(app *fiber.App) {
 			})
 		}
 
-		// Здесь можно добавить логику аутентификации пользователя
+		
 
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
 			"message": "Пользователь успешно авторизован",

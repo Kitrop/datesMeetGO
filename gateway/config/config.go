@@ -9,9 +9,7 @@ func StartServer() *fiber.App{
 	app := fiber.New()
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:  "*", // Разрешенные домены
-		AllowCredentials: true,
-		AllowMethods:  "GET, POST, DELETE",
+		AllowOrigins:  "*",
 		MaxAge: 43200,
 	}))
 
